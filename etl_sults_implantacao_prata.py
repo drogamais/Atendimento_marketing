@@ -1,132 +1,168 @@
+# ==============================================================================
+# --- IMPORTAÇÕES ---
+# ==============================================================================
 import pandas as pd
 import mariadb
 import sys
+import warnings
 
-# --- CONFIGURAÇÕES DO BANCO DE DADOS ---
-# 🚨 PREENCHA COM AS SUAS INFORMAÇÕES (devem ser as mesmas do outro script) 🚨
-CONFIGURACOES_BANCO = {
-    "user": "drogamais",
-    "password": "dB$MYSql@2119",
-    "host": "10.48.12.20",
-    "port": 3306,
-    "database": "dbSults"
-}
+# Módulos do nosso projeto
+import config  # Importa o seu arquivo de configurações
 
-# --- Nomes das Tabelas ---
-TABELA_BRONZE = "bronze_implantacao_sults" # Tabela de onde vamos LER
-TABELA_PRATA = "prata_implantacao_sults"   # Tabela onde vamos ESCREVER
+# Ignora avisos específicos do Pandas
+warnings.filterwarnings('ignore', message='pandas only supports SQLAlchemy.*')
 
-def transformar_bronze_para_prata():
+# ==============================================================================
+# --- FUNÇÕES DO PROCESSO ETL ---
+# ==============================================================================
+
+def extract_data():
     """
-    Conecta no banco, lê da camada Bronze, transforma os dados
-    e salva na camada Prata.
+    Extrai dados da camada Bronze (tarefas) e da dimensão de responsáveis.
+    Retorna o DataFrame principal e os dicionários para mapeamento.
     """
+    print("--- INICIANDO ETAPA DE EXTRAÇÃO (EXTRACT) ---")
     conn = None
     try:
-        # --- 1. EXTRAÇÃO (Ler dados da camada Bronze) ---
-        print(f"Conectando ao banco de dados para ler da tabela '{TABELA_BRONZE}'...")
-        conn = mariadb.connect(**CONFIGURACOES_BANCO)
+        print("Conectando ao banco de dados...")
+        # [MODIFICADO] Usa a configuração do arquivo config.py
+        conn = mariadb.connect(**config.DB_CONFIG)
         
-        # Carrega todos os dados da tabela bronze para um DataFrame do Pandas
-        df_bronze = pd.read_sql(f"SELECT * FROM {TABELA_BRONZE}", conn)
-        
-        if df_bronze.empty:
-            print("A tabela bronze está vazia. Nenhum dado para transformar.")
-            return
+        print(f"Lendo a tabela de tarefas: '{config.BRONZE_IMPLANTACOES_TABLE_NAME}'...")
+        # [MODIFICADO] Usa o nome da tabela do config.py
+        df_bronze = pd.read_sql(f"SELECT * FROM {config.BRONZE_IMPLANTACOES_TABLE_NAME}", conn)
+        print(f" > Sucesso! {len(df_bronze)} registros lidos da camada Bronze.")
 
-        print(f"{len(df_bronze)} registros lidos da camada bronze.")
+        print(f"Lendo a tabela de dimensão: '{config.DIM_RESPONSAVEIS_TABLE_NAME}'...")
+        # ⚠️ ATENÇÃO: Verifique se 'id_sults' é o nome correto da coluna na sua dim_responsaveis
+        query_responsaveis = f"SELECT id_sults, nome_oficial, departamento_nome FROM {config.DIM_RESPONSAVEIS_TABLE_NAME}"
+        df_responsaveis = pd.read_sql(query_responsaveis, conn)
+        
+        df_responsaveis['id_sults'] = pd.to_numeric(df_responsaveis['id_sults'], errors='coerce')
+        df_responsaveis.dropna(subset=['id_sults'], inplace=True)
+        
+        mapa_nomes = pd.Series(df_responsaveis.nome_oficial.values, index=df_responsaveis.id_sults).to_dict()
+        print(f" > Sucesso! {len(mapa_nomes)} responsáveis mapeados.")
 
-        # --- 2. TRANSFORMAÇÃO (Mapear e criar as colunas da camada Prata) ---
-        print("Iniciando a transformação dos dados para o modelo Prata...")
+        mapa_departamentos = pd.Series(df_responsaveis.departamento_nome.values, index=df_responsaveis.id_sults).to_dict()
+        print(f" > Sucesso! {len(mapa_departamentos)} departamentos mapeados.")
         
-        df_prata = pd.DataFrame()
-
-        # Mapeamento de-para entre as colunas Bronze -> Prata
-        df_prata['id_fato_implantacao'] = 'implantacao-' + df_bronze['id'].astype(str)
-        df_prata['id_implantacao'] = df_bronze['id']
-        df_prata['titulo'] = df_bronze['nome']  # Usando o nome da tarefa como título
-        df_prata['data_referencia'] = df_bronze['dtCriacao']
-        
-        # Colunas com valores fixos ou nulos, pois não existem na origem de implantação
-        df_prata['assunto_id'] = None
-        df_prata['assunto_nome'] = 'Implantação de Loja' # Valor fixo para identificar a origem
-        
-        # Mapeamento de situação (Exemplo, ajuste conforme seus dados)
-        # 1– Concluído, 2- Aberto, 3- Em Andamento, 4- Aguardando Predecessora, 5- Definir
-        situacao_map = {1: 'Concluído', 2: 'Aberto', 3: 'Em Andamento', 4: 'Aguardando', 5: 'A Definir'}
-        df_prata['situacao_id'] = df_bronze['situacao']
-        df_prata['situacao_nome'] = df_bronze['situacao'].map(situacao_map).fillna('Desconhecido')
-
-        # Mapeamento de pessoas (solicitante não existe na tarefa, usaremos o responsável)
-        df_prata['solicitante_id'] = df_bronze['responsavel_id'] 
-        df_prata['solicitante_nome'] = df_bronze['responsavel_nome']
-        df_prata['departamento_solicitante_nome'] = None # Não temos essa informação
-        
-        df_prata['responsavel_id'] = df_bronze['responsavel_id']
-        df_prata['responsavel_nome'] = df_bronze['responsavel_nome']
-        df_prata['departamento_responsavel_nome'] = None # Não temos essa informação
-        
-        # Colunas de apoio (não existem na origem)
-        df_prata['id_pessoa_apoio'] = None
-        df_prata['nome_apoio'] = None
-        df_prata['departamento_apoio_nome'] = None
-        
-        # Coluna de origem (muito importante para a VIEW)
-        df_prata['tipo_origem'] = 'Implantacao'
-
-        print("Transformação concluída.")
-
-        # --- 3. CARGA (Salvar os dados transformados na camada Prata) ---
-        cursor = conn.cursor()
-        
-        print(f"Apagando a tabela antiga '{TABELA_PRATA}' (se existir)...")
-        cursor.execute(f"DROP TABLE IF EXISTS `{TABELA_PRATA}`")
-        
-        print(f"Criando a nova estrutura da tabela '{TABELA_PRATA}'...")
-        sql_create_table = f"""
-        CREATE TABLE `{TABELA_PRATA}` (
-            `id_fato_implantacao`         VARCHAR(255) PRIMARY KEY,
-            `id_implantacao`              DECIMAL(38, 0),
-            `titulo`                      TEXT,
-            `data_referencia`             DATETIME,
-            `assunto_id`                  INT NULL,
-            `assunto_nome`                VARCHAR(255),
-            `situacao_id`                 INT NULL,
-            `situacao_nome`               VARCHAR(255),
-            `solicitante_id`              DECIMAL(38, 0) NULL,
-            `solicitante_nome`            VARCHAR(255) NULL,
-            `departamento_solicitante_nome` VARCHAR(255) NULL,
-            `responsavel_id`              DECIMAL(38, 0) NULL,
-            `responsavel_nome`            VARCHAR(255) NULL,
-            `departamento_responsavel_nome` VARCHAR(255) NULL,
-            `id_pessoa_apoio`             DECIMAL(38, 0) NULL,
-            `nome_apoio`                  VARCHAR(255) NULL,
-            `departamento_apoio_nome`     VARCHAR(255) NULL,
-            `tipo_origem`                 VARCHAR(100)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        """
-        cursor.execute(sql_create_table)
-        
-        # Preparar e inserir os dados
-        df_para_inserir = df_prata.astype(object).where(pd.notna(df_prata), None)
-        dados_para_inserir = [tuple(x) for x in df_para_inserir.to_numpy()]
-        
-        sql_insert = f"INSERT INTO `{TABELA_PRATA}` ({', '.join([f'`{c}`' for c in df_prata.columns])}) VALUES ({', '.join(['?' for _ in df_prata.columns])})"
-        
-        print(f"Inserindo {len(dados_para_inserir)} registros na tabela '{TABELA_PRATA}'...")
-        cursor.executemany(sql_insert, dados_para_inserir)
-        
-        conn.commit()
-        print(f"✅ Sucesso! Tabela '{TABELA_PRATA}' criada e populada.")
+        return df_bronze, mapa_nomes, mapa_departamentos
 
     except mariadb.Error as e:
-        print(f"❌ Erro ao interagir com o MariaDB: {e}")
+        print(f"❌ FALHA na Extração de Dados! Erro MariaDB: {e}")
         sys.exit(1)
     finally:
         if conn:
             conn.close()
             print("Conexão com o banco de dados fechada.")
 
-# --- Bloco Principal de Execução ---
+def transform_data(df_bronze, mapa_nomes, mapa_departamentos):
+    """
+    Aplica as regras de negócio para transformar os dados de implantação.
+    Retorna o DataFrame pronto para a camada Silver.
+    """
+    print("\n--- INICIANDO ETAPA DE TRANSFORMAÇÃO (TRANSFORM) ---")
+
+    df_silver = pd.DataFrame()
+
+    df_silver['id_fato_implantacao'] = 'implantacao-' + df_bronze['id'].astype(str)
+    df_silver['id_implantacao'] = df_bronze['id']
+    df_silver['titulo'] = df_bronze['nome']
+    df_silver['data_referencia'] = pd.to_datetime(df_bronze['dtCriacao']).dt.date
+    df_silver['assunto_id'] = None
+    df_silver['assunto_nome'] = 'Implantação de Loja'
+    
+    # [MODIFICADO] Usa o mapa de situação do arquivo config.py
+    df_silver['situacao_id'] = df_bronze['situacao']
+    df_silver['situacao_nome'] = df_bronze['situacao'].map(config.MAPA_SITUACAO_IMPLANTACAO).fillna('Desconhecido')
+
+    df_silver['solicitante_id'] = df_bronze['responsavel_id']
+    df_silver['solicitante_nome'] = df_bronze['responsavel_id'].map(mapa_nomes).fillna(df_bronze['responsavel_nome'])
+    df_silver['departamento_solicitante_nome'] = df_bronze['responsavel_id'].map(mapa_departamentos)
+    
+    df_silver['responsavel_id'] = df_bronze['responsavel_id']
+    df_silver['responsavel_nome'] = df_bronze['responsavel_id'].map(mapa_nomes).fillna(df_bronze['responsavel_nome'])
+    df_silver['departamento_responsavel_nome'] = df_bronze['responsavel_id'].map(mapa_departamentos)
+    
+    df_silver['id_pessoa_apoio'] = None
+    df_silver['nome_apoio'] = None
+    df_silver['departamento_apoio_nome'] = None
+    df_silver['tipo_origem'] = 'Implantacao'
+
+    print(" > Transformação concluída.")
+    return df_silver
+
+def load_data(df_silver):
+    """
+    Carrega o DataFrame transformado na tabela da camada Silver.
+    """
+    print("\n--- INICIANDO ETAPA DE CARGA (LOAD) ---")
+    conn = None
+    try:
+        print(f"Conectando ao banco de dados para carregar a tabela '{config.SILVER_IMPLANTACOES_TABLE_NAME}'...")
+        # [MODIFICADO] Usa a configuração do arquivo config.py
+        conn = mariadb.connect(**config.DB_CONFIG)
+        cursor = conn.cursor()
+
+        print(f"Recriando a tabela '{config.SILVER_IMPLANTACOES_TABLE_NAME}'...")
+        # [MODIFICADO] Usa o nome da tabela do config.py
+        cursor.execute(f"DROP TABLE IF EXISTS {config.SILVER_IMPLANTACOES_TABLE_NAME}")
+        create_table_query = f"""
+        CREATE TABLE {config.SILVER_IMPLANTACOES_TABLE_NAME} (
+            id_fato_implantacao         VARCHAR(255) PRIMARY KEY, id_implantacao              DECIMAL(38, 0),
+            titulo                      TEXT, data_referencia             DATE,
+            assunto_id                  INT NULL, assunto_nome                VARCHAR(255),
+            situacao_id                 INT NULL, situacao_nome               VARCHAR(255),
+            solicitante_id              DECIMAL(38, 0) NULL, solicitante_nome            VARCHAR(255) NULL,
+            departamento_solicitante_nome VARCHAR(255) NULL, responsavel_id              DECIMAL(38, 0) NULL,
+            responsavel_nome            VARCHAR(255) NULL, departamento_responsavel_nome VARCHAR(255) NULL,
+            id_pessoa_apoio             DECIMAL(38, 0) NULL, nome_apoio                  VARCHAR(255) NULL,
+            departamento_apoio_nome     VARCHAR(255) NULL, tipo_origem                 VARCHAR(100)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """
+        cursor.execute(create_table_query)
+        print(" > Tabela Silver criada com sucesso.")
+
+        print(f"Inserindo {len(df_silver)} registros na tabela...")
+        df_para_inserir = df_silver.astype(object).where(pd.notna(df_silver), None)
+        dados_para_inserir = [tuple(row) for row in df_para_inserir.itertuples(index=False)]
+        
+        insert_query = f"INSERT INTO {config.SILVER_IMPLANTACOES_TABLE_NAME} VALUES ({', '.join(['?'] * len(df_silver.columns))})"
+        cursor.executemany(insert_query, dados_para_inserir)
+        
+        conn.commit()
+        print(f" > {cursor.rowcount} registros inseridos com sucesso!")
+
+    except mariadb.Error as e:
+        print(f"❌ FALHA ao carregar dados na tabela Silver! Erro MariaDB: {e}")
+        sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+            print("Conexão com o banco de dados fechada.")
+
+def main():
+    """
+    Função principal que orquestra o processo ETL.
+    """
+    print("="*55)
+    print("INICIANDO PROCESSO ETL: Bronze -> Silver (Implantação Sults)")
+    print("="*55)
+    
+    df_bronze, mapa_nomes, mapa_departamentos = extract_data()
+
+    if df_bronze.empty:
+        print("\nNenhum dado encontrado na tabela Bronze para processar. Encerrando.")
+        return
+
+    df_silver = transform_data(df_bronze, mapa_nomes, mapa_departamentos)
+    load_data(df_silver)
+    
+    print("\n" + "="*55)
+    print("PROCESSO ETL FINALIZADO COM SUCESSO!")
+    print("="*55)
+
+# --- PONTO DE ENTRADA DO SCRIPT ---
 if __name__ == "__main__":
-    transformar_bronze_para_prata()
+    main()
