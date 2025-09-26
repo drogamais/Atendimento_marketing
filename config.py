@@ -52,3 +52,17 @@ MAPA_SITUACAO_TEXTO = {
     'Aguardando': 'AGUARDANDO RESPONSÁVEL',
     'Cancelado': 'CANCELADO'
 }
+
+# --- NOMES DE TABELAS (Adição para Implantação) ---
+BRONZE_IMPLANTACOES_TABLE_NAME = "bronze_implantacao_sults"
+SILVER_IMPLANTACOES_TABLE_NAME = "prata_implantacao_sults"
+
+# --- MAPEAMENTOS DE REGRAS DE NEGÓCIO (Adição para Implantação) ---
+# Mapeia os códigos de situação das tarefas de implantação para texto
+MAPA_SITUACAO_IMPLANTACAO = {
+    1: 'Concluído',
+    2: 'Aberto',
+    3: 'Em Andamento',
+    4: 'Aguardando',
+    5: 'A Definir'
+}
