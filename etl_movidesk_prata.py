@@ -35,8 +35,8 @@ def extract_data():
         df_bronze = pd.read_sql(f"SELECT * FROM {config.BRONZE_TABLE_NAME}", conn) # Usando a config importada
         print(f" > Sucesso! {len(df_bronze)} registros lidos da camada Bronze.")
 
-        print(f"Lendo a tabela '{config.DIM_RESPONSAVEIS_TABLE_NAME}' para mapeamento...")
-        query_responsaveis = f"SELECT id_movidesk, nome_oficial, departamento_nome FROM {config.DIM_RESPONSAVEIS_TABLE_NAME}" # Usando a config importada
+        print(f"Lendo a tabela '{config.DIM_PESSOAS_TABLE_NAME}' para mapeamento...")
+        query_responsaveis = f"SELECT id_movidesk, nome_oficial, departamento_nome FROM {config.DIM_PESSOAS_TABLE_NAME}" # Usando a config importada
         df_responsaveis = pd.read_sql(query_responsaveis, conn)
         
         df_responsaveis['id_movidesk'] = pd.to_numeric(df_responsaveis['id_movidesk'], errors='coerce')
@@ -51,7 +51,7 @@ def extract_data():
         return df_bronze, mapa_responsaveis, mapa_departamentos
 
     except mariadb.Error as e:
-        erro_msg = f"❌ **FALHA na Extração de Dados!**\n\n- *Erro MariaDB:*\n`{e}`"
+        erro_msg = f"[FALHA] **FALHA na Extração de Dados!**\n\n- *Erro MariaDB:*\n`{e}`"
         print(f"ERRO: {erro_msg}")
         enviar_mensagem_telegram(erro_msg)
         sys.exit(f"Encerrando o script. Erro de Banco de Dados: {e}")
@@ -141,7 +141,7 @@ def load_data(df_silver):
         print(f" > {cur.rowcount} registros inseridos com sucesso!")
 
     except mariadb.Error as e:
-        erro_msg = f"❌ **FALHA ao carregar dados na tabela Silver!**\n\n- *Erro MariaDB:*\n`{e}`"
+        erro_msg = f"[FALHA] **FALHA ao carregar dados na tabela Silver!**\n\n- *Erro MariaDB:*\n`{e}`"
         print(f"ERRO: {erro_msg}")
         enviar_mensagem_telegram(erro_msg)
         sys.exit(f"Erro de Banco de Dados: {e}")
@@ -170,14 +170,6 @@ def main():
 
     # 3. Carga
     load_data(df_silver)
-
-    # 4. Notificação de sucesso
-    sucesso_msg = (
-        f"✅ *ETL Silver MoviDesk Concluído!* \n\n"
-        f"- A tabela `{config.SILVER_TABLE_NAME}` foi atualizada com sucesso.\n"
-        f"- Total de registros processados: {len(df_silver)}"
-    )
-    enviar_mensagem_telegram(sucesso_msg)
     
     print("\n=============================================")
     print("PROCESSO ETL FINALIZADO COM SUCESSO!")

@@ -1,10 +1,13 @@
+# run.py
+
 import subprocess
+from utils import enviar_mensagem_telegram
 
 def run_script(script_name):
     try:
         print(f"--- Iniciando a execução de: {script_name} ---")
         subprocess.run(
-            ["python", script_name],  # troquei sys.executable por "python"
+            ["python", script_name],
             check=True,
             text=True,
             capture_output=True
@@ -32,6 +35,8 @@ def main():
     scripts_para_rodar = [
         "etl_movidesk_bronze.py",
         "etl_movidesk_prata.py",
+        "etl_sults_implantacao_bronze.py",
+        "etl_sults_implantacao_prata.py",
         "etl_sults_bronze.py",
         "etl_sults_prata.py"
     ]
@@ -43,7 +48,15 @@ def main():
             print(">>> Processo de ETL finalizado com erro. <<<")
             break
     else:
+        # --- 2. ADICIONE A MENSAGEM DE SUCESSO AQUI ---
+        # Este bloco só executa se o 'for' completar sem 'break' (sem erros)
         print(">>> Todos os scripts foram executados com sucesso! <<<")
+        mensagem_final = (
+            "✅ *Processo de ETL Completo Finalizado!*\n\n"
+            "Todos os scripts foram executados com sucesso e os dados foram atualizados."
+        )
+        enviar_mensagem_telegram(mensagem_final)
+        # ----------------------------------------------------
 
 
 if __name__ == "__main__":
