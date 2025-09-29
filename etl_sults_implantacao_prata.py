@@ -69,7 +69,7 @@ def transform_data(df_bronze, mapa_nomes, mapa_departamentos):
     df_silver['id_fato_implantacao'] = 'implantacao-' + df_bronze['id'].astype(str)
     df_silver['id_implantacao'] = df_bronze['id']
     df_silver['titulo'] = df_bronze['nome']
-    df_silver['data_referencia'] = pd.to_datetime(df_bronze['dtCriacao']).dt.date
+    df_silver['data_referencia'] = pd.to_datetime(df_bronze['dtConclusao'].fillna(df_bronze['dtCriacao'])).dt.date
     df_silver['assunto_id'] = None
     df_silver['assunto_nome'] = 'Implantação de Loja'
     
@@ -88,7 +88,7 @@ def transform_data(df_bronze, mapa_nomes, mapa_departamentos):
     df_silver['id_pessoa_apoio'] = None
     df_silver['nome_apoio'] = None
     df_silver['departamento_apoio_nome'] = None
-    df_silver['tipo_origem'] = 'Implantacao'
+    df_silver['tipo_origem'] = 'IMPLANTACAO SULTS'
 
     print(" > Transformação concluída.")
     return df_silver
@@ -113,13 +113,13 @@ def load_data(df_silver):
             id_fato_implantacao         VARCHAR(255) PRIMARY KEY, id_implantacao              DECIMAL(38, 0),
             titulo                      TEXT, data_referencia             DATE,
             assunto_id                  INT NULL, assunto_nome                VARCHAR(255),
-            situacao_id                 INT NULL, situacao_nome               VARCHAR(255),
+            situacao                    INT NULL, situacao_nome               VARCHAR(255),
             solicitante_id              DECIMAL(38, 0) NULL, solicitante_nome            VARCHAR(255) NULL,
             departamento_solicitante_nome VARCHAR(255) NULL, responsavel_id              DECIMAL(38, 0) NULL,
             responsavel_nome            VARCHAR(255) NULL, departamento_responsavel_nome VARCHAR(255) NULL,
             id_pessoa_apoio             DECIMAL(38, 0) NULL, nome_apoio                  VARCHAR(255) NULL,
             departamento_apoio_nome     VARCHAR(255) NULL, tipo_origem                 VARCHAR(100)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
         """
         cursor.execute(create_table_query)
         print(" > Tabela Silver criada com sucesso.")
