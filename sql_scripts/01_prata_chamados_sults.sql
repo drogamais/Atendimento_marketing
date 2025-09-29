@@ -57,7 +57,7 @@ chamados_filtrados AS (
 -- ETAPA 3: Com os dados já limpos, seleciona e transforma as colunas para a inserção.
 SELECT
     -- 1. CHAVE PRIMÁRIA ARTIFICIAL (ID DO FATO)
-    CONCAT(bcs.id_chamado, '-', COALESCE(bcs.id_pessoa_apoio, 0)) AS id_fato_chamado,
+    CONCAT('chamado-', bcs.id_chamado, '-', COALESCE(bcs.id_pessoa_apoio, 0)) AS id_fato_chamado,
 
     -- 2. DADOS DO CHAMADO (DIMENSÕES DEGENERADAS)
     bcs.id_chamado,
