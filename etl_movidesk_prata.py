@@ -80,7 +80,7 @@ def transform_data(df_bronze, mapa_responsaveis, mapa_departamentos):
 
     # Construção do DataFrame Silver
     df_silver = pd.DataFrame()
-    df_silver['id_fato_chamado'] = df_bronze['id'].astype(str) + '-' + df_bronze['ownerId'].astype(str)
+    df_silver['id_fato_chamado'] = 'movidesk-' + df_bronze['id'].astype(str) + '-' + df_bronze['ownerId'].astype(str)
     df_silver['id_chamado'] = df_bronze['id']
     df_silver['titulo'] = df_bronze['subject']
     df_silver['data_referencia'] = pd.to_datetime(df_bronze['data_referencia_final']).dt.date

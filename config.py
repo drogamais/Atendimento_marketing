@@ -71,8 +71,8 @@ MAPA_SITUACAO_IMPLANTACAO_ID = {
     1: 2,  # Concluído -> 1 (CONCLUÍDO)
     2: 8,  # Aberto -> 8 (ABERTO)
     3: 4,  # Em Andamento -> 4 (EM ATENDIMENTO)
-    4: 6,  # Aguardando -> 6 (AGUARDANDO)
-    5: 9   # A Definir -> 9 (A DEFINIR)
+    4: 9,  # Aguardando -> 6 (AGUARDANDO)
+    5: 10   # A Definir -> 9 (A DEFINIR)
 }
 
 # Mapeia os IDs originais da API para os Nomes padronizados da camada Prata
