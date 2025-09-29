@@ -1,8 +1,8 @@
 -- 1. Garante que a tabela antiga seja removida antes de começar.
-DROP TABLE IF EXISTS prata_chamados_sults;
+DROP TABLE IF EXISTS silver_sults_chamados;
 
 -- 2. Cria a estrutura da tabela vazia, definindo a PRIMARY KEY.
-CREATE TABLE prata_chamados_sults (
+CREATE TABLE silver_sults_chamados (
     id_fato_chamado                 VARCHAR(255) PRIMARY KEY,
     id_chamado                      INT,
     titulo                          TEXT,
@@ -24,7 +24,7 @@ CREATE TABLE prata_chamados_sults (
 );
 
 -- 3. Insere os dados na tabela recém-criada usando a lógica de transformação.
-INSERT INTO prata_chamados_sults
+INSERT INTO silver_sults_chamados
 -- ETAPA 1: Expande o JSON para ter uma linha por pessoa de apoio.
 WITH bronze_com_apoio AS (
     SELECT DISTINCT
@@ -32,7 +32,7 @@ WITH bronze_com_apoio AS (
         jt.nome_apoio AS nome_pessoa_apoio, -- Renomeia para evitar ambiguidade
         jt.id_pessoa_apoio
     FROM
-        bronze_chamados_sults AS bcs
+        bronze_sults_chamados AS bcs
     LEFT JOIN
         JSON_TABLE(
             REPLACE(REPLACE(REPLACE(bcs.apoio, "'", '"'), ': True', ': true'), ': False', ': false'),
@@ -74,7 +74,7 @@ SELECT
 
     -- 3. DADOS DO SOLICITANTE
     bcs.solicitante_id,
-    -- MODIFICADO: Usa o nome_oficial da dim_responsaveis com fallback.
+    -- MODIFICADO: Usa o nome_oficial da dim_pessoas com fallback.
     COALESCE(dr_solicitante.nome_oficial, bcs.solicitante_nome) AS solicitante_nome,
     COALESCE(dr_solicitante.departamento_nome, 'Não Informado') AS departamento_solicitante_nome,
 
@@ -85,7 +85,7 @@ SELECT
 
     -- 5. DADOS DA PESSOA DE APOIO
     bcs.id_pessoa_apoio,
-    -- MODIFICADO: Usa o nome_oficial da dim_responsaveis com fallback, dentro da lógica que trata nulos.
+    -- MODIFICADO: Usa o nome_oficial da dim_pessoas com fallback, dentro da lógica que trata nulos.
     CASE 
         WHEN bcs.id_pessoa_apoio IS NULL THEN NULL 
         ELSE COALESCE(dr_apoio.nome_oficial, bcs.nome_pessoa_apoio, 'Nome não informado') 
@@ -103,8 +103,8 @@ FROM
     chamados_filtrados AS bcs -- A FONTE AGORA É A TABELA JÁ FILTRADA
 
 LEFT JOIN
-    dim_responsaveis AS dr_solicitante ON bcs.solicitante_id = dr_solicitante.id_sults
+    dim_pessoas AS dr_solicitante ON bcs.solicitante_id = dr_solicitante.id_sults
 LEFT JOIN
-    dim_responsaveis AS dr_apoio ON bcs.id_pessoa_apoio = dr_apoio.id_sults
+    dim_pessoas AS dr_apoio ON bcs.id_pessoa_apoio = dr_apoio.id_sults
 LEFT JOIN
-    dim_responsaveis AS dr_responsavel ON bcs.responsavel_id = dr_responsavel.id_sults;
+    dim_pessoas AS dr_responsavel ON bcs.responsavel_id = dr_responsavel.id_sults;

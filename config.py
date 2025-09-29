@@ -14,10 +14,10 @@ DB_CONFIG = {
 }
 
 # --- NOMES DAS TABELAS ---
-BRONZE_TABLE_NAME = "bronze_chamados_movidesk"
-BRONZE_TABLE_NAME_SULTS = "bronze_chamados_sults"
-SILVER_TABLE_NAME = "prata_chamados_movidesk"
-DIM_RESPONSAVEIS_TABLE_NAME = "dim_responsaveis"
+BRONZE_TABLE_NAME = "bronze_movidesk_chamados"
+BRONZE_TABLE_NAME_SULTS = "bronze_sults_chamados"
+SILVER_TABLE_NAME = "silver_movidesk_chamados"
+DIM_PESSOAS_TABLE_NAME = "dim_pessoas"
 
 # --- APIs ---
 # MoviDesk
@@ -49,20 +49,37 @@ MAPA_SITUACAO_TEXTO = {
     'Fechado': 'CONCLUÍDO',
     'Resolvido': 'RESOLVIDO',
     'Em atendimento': 'EM ANDAMENTO',
-    'Aguardando': 'AGUARDANDO RESPONSÁVEL',
+    'Aguardando': 'AGUARDANDO',
     'Cancelado': 'CANCELADO'
 }
 
 # --- NOMES DE TABELAS (Adição para Implantação) ---
-BRONZE_IMPLANTACOES_TABLE_NAME = "bronze_implantacao_sults"
-SILVER_IMPLANTACOES_TABLE_NAME = "prata_implantacao_sults"
+BRONZE_IMPLANTACOES_TABLE_NAME = "bronze_sults_implantacao"
+SILVER_IMPLANTACOES_TABLE_NAME = "silver_sults_implantacao"
 
 # --- MAPEAMENTOS DE REGRAS DE NEGÓCIO (Adição para Implantação) ---
 # Mapeia os códigos de situação das tarefas de implantação para texto
-MAPA_SITUACAO_IMPLANTACAO = {
-    1: 'Concluído',
-    2: 'Aberto',
-    3: 'Em Andamento',
-    4: 'Aguardando',
-    5: 'A Definir'
+# MAPA_SITUACAO_IMPLANTACAO = {
+#     1: 'Concluído',
+#     2: 'Aberto',
+#     3: 'Em Andamento',
+#     4: 'Aguardando',
+#     5: 'A Definir'
+# }
+
+MAPA_SITUACAO_IMPLANTACAO_ID = {
+    1: 2,  # Concluído -> 1 (CONCLUÍDO)
+    2: 8,  # Aberto -> 8 (ABERTO)
+    3: 4,  # Em Andamento -> 4 (EM ATENDIMENTO)
+    4: 6,  # Aguardando -> 6 (AGUARDANDO)
+    5: 9   # A Definir -> 9 (A DEFINIR)
+}
+
+# Mapeia os IDs originais da API para os Nomes padronizados da camada Prata
+MAPA_SITUACAO_IMPLANTACAO_NOME = {
+    1: 'CONCLUÍDO',
+    2: 'ABERTO',
+    3: 'EM ATENDIMENTO',
+    4: 'AGUARDANDO',
+    5: 'A DEFINIR'
 }

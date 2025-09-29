@@ -33,9 +33,9 @@ def extract_data():
         df_bronze = pd.read_sql(f"SELECT * FROM {config.BRONZE_IMPLANTACOES_TABLE_NAME}", conn)
         print(f" > Sucesso! {len(df_bronze)} registros lidos da camada Bronze.")
 
-        print(f"Lendo a tabela de dimensão: '{config.DIM_RESPONSAVEIS_TABLE_NAME}'...")
+        print(f"Lendo a tabela de dimensão: '{config.DIM_PESSOAS_TABLE_NAME}'...")
         # ⚠️ ATENÇÃO: Verifique se 'id_sults' é o nome correto da coluna na sua dim_responsaveis
-        query_responsaveis = f"SELECT id_sults, nome_oficial, departamento_nome FROM {config.DIM_RESPONSAVEIS_TABLE_NAME}"
+        query_responsaveis = f"SELECT id_sults, nome_oficial, departamento_nome FROM {config.DIM_PESSOAS_TABLE_NAME}"
         df_responsaveis = pd.read_sql(query_responsaveis, conn)
         
         df_responsaveis['id_sults'] = pd.to_numeric(df_responsaveis['id_sults'], errors='coerce')
@@ -50,7 +50,7 @@ def extract_data():
         return df_bronze, mapa_nomes, mapa_departamentos
 
     except mariadb.Error as e:
-        print(f"❌ FALHA na Extração de Dados! Erro MariaDB: {e}")
+        print(f"[FALHA] FALHA na Extração de Dados! Erro MariaDB: {e}")
         sys.exit(1)
     finally:
         if conn:
@@ -73,9 +73,11 @@ def transform_data(df_bronze, mapa_nomes, mapa_departamentos):
     df_silver['assunto_id'] = None
     df_silver['assunto_nome'] = 'Implantação de Loja'
     
-    # [MODIFICADO] Usa o mapa de situação do arquivo config.py
-    df_silver['situacao_id'] = df_bronze['situacao']
-    df_silver['situacao_nome'] = df_bronze['situacao'].map(config.MAPA_SITUACAO_IMPLANTACAO).fillna('Desconhecido')
+    # --- LINHAS MODIFICADAS ---
+    # Usa os novos mapas do config.py para traduzir IDs e Nomes
+    df_silver['situacao'] = df_bronze['situacao'].map(config.MAPA_SITUACAO_IMPLANTACAO_ID)
+    df_silver['situacao_nome'] = df_bronze['situacao'].map(config.MAPA_SITUACAO_IMPLANTACAO_NOME).fillna('Desconhecido')
+    # --- FIM DAS MODIFICAÇÕES ---
 
     df_silver['solicitante_id'] = df_bronze['responsavel_id']
     df_silver['solicitante_nome'] = df_bronze['responsavel_id'].map(mapa_nomes).fillna(df_bronze['responsavel_nome'])
@@ -135,7 +137,7 @@ def load_data(df_silver):
         print(f" > {cursor.rowcount} registros inseridos com sucesso!")
 
     except mariadb.Error as e:
-        print(f"❌ FALHA ao carregar dados na tabela Silver! Erro MariaDB: {e}")
+        print(f"[FALHA] FALHA ao carregar dados na tabela Silver! Erro MariaDB: {e}")
         sys.exit(1)
     finally:
         if conn:

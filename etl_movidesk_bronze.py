@@ -90,7 +90,7 @@ def extract_movidesk_data():
             time.sleep(1)
 
         except requests.exceptions.RequestException as e:
-            erro_msg = f"❌ *FALHA na extração do MoviDesk!*\n\n- *Erro de Rede:*\n`{e}`"
+            erro_msg = f"[FALHA] *FALHA na extração do MoviDesk!*\n\n- *Erro de Rede:*\n`{e}`"
             print(f"\nERRO: {erro_msg}")
             enviar_mensagem_telegram(erro_msg)
             return None
@@ -158,7 +158,7 @@ def load_data_to_mariadb(dataframe):
         CREATE TABLE {config.BRONZE_TABLE_NAME} (
             id INT PRIMARY KEY, subject TEXT, status VARCHAR(100),
             createdDate DATETIME, resolvedIn DATETIME, data_referencia_final DATETIME,
-            ownerId VARCHAR(255), ownerName VARCHAR(255), clientsName_final VARCHAR(255),
+            ownerId INT, ownerName VARCHAR(255), clientsName_final VARCHAR(255),
             loja_numero INT, adjunto VARCHAR(255), clientsName TEXT, tipo_origem VARCHAR(50)
         ) CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;
         """
@@ -177,15 +177,8 @@ def load_data_to_mariadb(dataframe):
         conn.commit()
         print(f" > {cur.rowcount} registros inseridos com sucesso!")
 
-        sucesso_msg = (
-            f"✅ *ETL MoviDesk Concluído!* \n\n"
-            f"- A tabela `{config.BRONZE_TABLE_NAME}` foi atualizada com sucesso.\n"
-            f"- Total de registros processados: {len(dataframe)}"
-        )
-        enviar_mensagem_telegram(sucesso_msg)
-
     except mariadb.Error as e:
-        erro_msg = f"❌ **FALHA ao carregar dados no Banco de Dados!**\n\n- *Erro MariaDB:*\n`{e}`"
+        erro_msg = f"[FALHA] **FALHA ao carregar dados no Banco de Dados!**\n\n- *Erro MariaDB:*\n`{e}`"
         print(f"\nERRO: {erro_msg}")
         enviar_mensagem_telegram(erro_msg)
         sys.exit("Script finalizado devido a erro no banco de dados.")
@@ -212,7 +205,7 @@ def main():
     # 2. Validação e Transformação
     if not raw_tickets_data:
         print("Nenhum ticket foi encontrado ou ocorreu um erro na extração. Encerrando.")
-        enviar_mensagem_telegram("ℹ️ *ETL Movidesk Concluído*\n\nNenhum ticket novo foi encontrado na extração.")
+        enviar_mensagem_telegram("*ETL Movidesk Concluído*\n\nNenhum ticket novo foi encontrado na extração.")
         return
 
     transformed_dataframe = transform_data(raw_tickets_data)

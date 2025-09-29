@@ -81,9 +81,9 @@ def transformar_dataframe_bronze(df):
     # --- LINHA ADICIONADA ---
     # Aqui criamos/sobrescrevemos a coluna 'tipo' com o valor fixo.
     print("Definindo a coluna 'tipo' como 'SULTS' para todos os registros.")
-    df['tipo_origem'] = 'SULTS' # Renomeei para não conflitar com a coluna tipo da API
+    df['tipo_origem'] = 'CHAMADOS SULTS' # Renomeei para não conflitar com a coluna tipo da API
     
-    print("✅ Transformação de tipos concluída.")
+    print("[OK] Transformação de tipos concluída.")
     return df
 
 
@@ -132,10 +132,10 @@ def criar_tabela_se_nao_existir(nome_tabela, db_config):
         print(f"Verificando e, se necessário, criando a tabela '{nome_tabela}'...")
         cursor.execute(create_table_query)
         conn.commit()
-        print("✅ Tabela pronta para uso.")
+        print("[OK] Tabela pronta para uso.")
         
     except mariadb.Error as e:
-        print(f"❌ Erro ao verificar/criar a tabela: {e}")
+        print(f"[FALHA] Erro ao verificar/criar a tabela: {e}")
         raise e
     finally:
         if conn:
@@ -156,7 +156,7 @@ def upsert_camada_bronze(df, nome_tabela, db_config):
         print("\nConectando ao banco de dados MariaDB...")
         conn = mariadb.connect(**db_config)
         cursor = conn.cursor()
-        print("✅ Conexão estabelecida com sucesso!")
+        print("[OK] Conexão estabelecida com sucesso!")
         print(f"Preparando para fazer o UPSERT de {len(df)} registros na tabela '{nome_tabela}'...")
 
         # 1. Prepara a query de UPSERT
@@ -185,15 +185,15 @@ def upsert_camada_bronze(df, nome_tabela, db_config):
         # 1 para cada inserção nova.
         # 2 para cada atualização.
         # 0 se nada mudou.
-        print(f"✅ Carga Upsert concluída! Status de linhas afetadas: {cursor.rowcount}")
+        print(f"[OK] Carga Upsert concluída! Status de linhas afetadas: {cursor.rowcount}")
 
     except mariadb.Error as e:
         # Erro comum: a tabela não existe. Damos uma dica para o usuário.
         if "Table" in str(e) and "doesn't exist" in str(e):
-             print(f"❌ ERRO: A tabela '{nome_tabela}' parece não existir.")
+             print(f"[FALHA] ERRO: A tabela '{nome_tabela}' parece não existir.")
              print("   -> DICA: Para a primeira execução, use o script anterior (com DROP/CREATE) para criar a tabela com o schema correto.")
         else:
-            print(f"❌ Erro ao interagir com o MariaDB: {e}")
+            print(f"[FALHA] Erro ao interagir com o MariaDB: {e}")
         raise e
     finally:
         if conn:

@@ -151,9 +151,9 @@ def tratar_e_salvar_tarefas(tarefas_json, nome_tabela):
         print(f"Inserindo {len(dados_para_inserir)} registros na tabela de tarefas...")
         cursor.executemany(sql_insert, dados_para_inserir)
         conn.commit()
-        print(f"✅ Sucesso! Dados inseridos na tabela '{nome_tabela}'.")
+        print(f"[OK] Sucesso! Dados inseridos na tabela '{nome_tabela}'.")
     except mariadb.Error as e:
-        print(f"❌ Erro ao interagir com o MariaDB: {e}")
+        print(f"[FALHA] Erro ao interagir com o MariaDB: {e}")
         sys.exit(1)
     finally:
         if conn:
@@ -165,6 +165,6 @@ if __name__ == "__main__":
     lista_de_projetos = buscar_todos_os_projetos()
     if lista_de_projetos:
         lista_de_tarefas = buscar_todas_as_tarefas(lista_de_projetos)
-        tratar_e_salvar_tarefas(lista_de_tarefas, "bronze_implantacao_sults")
+        tratar_e_salvar_tarefas(lista_de_tarefas, "bronze_sults_implantacao")
     else:
         print("\nNenhum projeto foi encontrado para iniciar a busca por tarefas.")

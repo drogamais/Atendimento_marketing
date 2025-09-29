@@ -30,13 +30,13 @@ def executar_scripts_da_pasta(path_da_pasta, cursor):
                     if command.strip():
                         cursor.execute(command)
         
-        print("✅ Todos os scripts SQL foram executados com sucesso.")
+        print("[OK] Todos os scripts SQL foram executados com sucesso.")
 
     except mariadb.Error as e:
-        print(f"❌ ERRO ao executar o script '{script_file}'. A execução foi interrompida.")
+        print(f"[FALHA] ERRO ao executar o script '{script_file}'. A execução foi interrompida.")
         raise e # Propaga o erro para o bloco 'main'
     except FileNotFoundError:
-        print(f"❌ ERRO: A pasta de scripts '{path_da_pasta}' não foi encontrada.")
+        print(f"[FALHA] ERRO: A pasta de scripts '{path_da_pasta}' não foi encontrada.")
         raise
 
 def main():
@@ -60,11 +60,11 @@ def main():
         
         # Confirma todas as transações SQL
         conn.commit()
-        print("\n✅ Transformações SQL commitadas no banco de dados.")
-        print("\n🎉 PROCESSO DA CAMADA PRATA CONCLUÍDO COM SUCESSO! 🎉")
+        print("\n[OK] Transformações SQL commitadas no banco de dados.")
+        print("\n[SUCESSO] PROCESSO DA CAMADA PRATA CONCLUÍDO COM SUCESSO! ")
 
     except Exception as e:
-        print(f"\n❌ ERRO CRÍTICO NO PROCESSO DA CAMADA PRATA.")
+        print(f"\n[FALHA] ERRO CRÍTICO NO PROCESSO DA CAMADA PRATA.")
         print(f"   -> Detalhe do Erro: {e}")
         sys.exit(1)
     finally:
