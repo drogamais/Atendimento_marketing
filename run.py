@@ -1,30 +1,36 @@
-# run.py
-
 import subprocess
+import sys
+import os
 from utils import enviar_mensagem_telegram
 
-def run_script(script_name):
+def get_python_executable():
+    """Encontra o caminho correto para o executável do Python dentro do venv."""
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        executable = os.path.join(sys.prefix, 'Scripts', 'python.exe')
+        if os.path.exists(executable):
+            return executable
+    return sys.executable
+
+def run_script(script_name, python_executable):
+    """Executa um script Python e deixa sua saída ir direto para o console."""
     try:
         print(f"--- Iniciando a execução de: {script_name} ---")
-        subprocess.run(
-            ["python", script_name],
-            check=True,
-            text=True,
-            capture_output=True
+        
+        # MUDANÇA PRINCIPAL: Removemos a captura de output.
+        # As mensagens do script filho irão direto para o console.
+        result = subprocess.run(
+            [python_executable, script_name],
+            check=True, # Garante que o script pare se houver um erro interno.
+            text=True
         )
+        
         print(f"--- {script_name} executado com sucesso! ---\n")
         return True
-    except FileNotFoundError:
-        print(f"ERRO: O arquivo '{script_name}' não foi encontrado.")
-        return False
     except subprocess.CalledProcessError as e:
-        print(f"ERRO ao executar o script: {script_name}")
-        print(f"Código de saída: {e.returncode}")
-        print("\n--- Saída Padrão (stdout) ---")
-        print(e.stdout)
-        print("\n--- Saída de Erro (stderr) ---")
-        print(e.stderr)
-        print(f"--- Execução interrompida devido a um erro em {script_name} ---\n")
+        # Este bloco só será executado se um dos scripts de ETL falhar de verdade.
+        print(f"\nERRO CRÍTICO ao executar o script: {script_name}")
+        print(f"O processo foi interrompido.")
+        # O erro detalhado já terá sido exibido no console pelo próprio script que falhou.
         return False
     except Exception as e:
         print(f"Ocorreu um erro inesperado ao tentar executar {script_name}: {e}")
@@ -43,21 +49,20 @@ def main():
 
     print(">>> Iniciando o processo de ETL completo <<<\n")
 
+    python_exe = get_python_executable()
+
     for script in scripts_para_rodar:
-        if not run_script(script):
+        if not run_script(script, python_exe):
             print(">>> Processo de ETL finalizado com erro. <<<")
+            enviar_mensagem_telegram("❌ *Processo de ETL Falhou!*\n\nUm erro crítico ocorreu. Verifique o console para detalhes.")
             break
     else:
-        # --- 2. ADICIONE A MENSAGEM DE SUCESSO AQUI ---
-        # Este bloco só executa se o 'for' completar sem 'break' (sem erros)
         print(">>> Todos os scripts foram executados com sucesso! <<<")
         mensagem_final = (
             "✅ *Processo de ETL Completo Finalizado!*\n\n"
-            "Todos os scripts foram executados com sucesso e os dados foram atualizados."
+            "Todos os scripts foram atualizados com sucesso."
         )
         enviar_mensagem_telegram(mensagem_final)
-        # ----------------------------------------------------
-
 
 if __name__ == "__main__":
     main()
