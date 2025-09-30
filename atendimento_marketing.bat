@@ -32,5 +32,3 @@ call deactivate
 echo.
 echo [FIM] Processo de ETL finalizado. Verifique o arquivo execution_log.txt para o resultado.
 echo.
-
-pause
