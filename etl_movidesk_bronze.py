@@ -159,7 +159,8 @@ def load_data_to_mariadb(dataframe):
             id INT PRIMARY KEY, subject TEXT, status VARCHAR(100),
             createdDate DATETIME, resolvedIn DATETIME, data_referencia_final DATETIME,
             ownerId INT, ownerName VARCHAR(255), clientsName_final VARCHAR(255),
-            loja_numero INT, adjunto VARCHAR(255), clientsName TEXT, tipo_origem VARCHAR(50)
+            loja_numero INT, adjunto VARCHAR(255), clientsName TEXT, tipo_origem VARCHAR(50),
+            data_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;
         """
         cur.execute(create_table_query)

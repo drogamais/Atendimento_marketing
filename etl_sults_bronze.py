@@ -125,6 +125,7 @@ def criar_tabela_se_nao_existir(nome_tabela, db_config):
             `assunto_id` TEXT NULL DEFAULT NULL,
             `assunto_nome` TEXT NULL DEFAULT NULL,
             `tipo_origem` VARCHAR(100) NULL DEFAULT NULL,
+            `data_atualizacao` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id_chamado`) USING BTREE
         );
         """

@@ -120,7 +120,8 @@ def load_data(df_silver):
             departamento_solicitante_nome VARCHAR(255) NULL, responsavel_id              DECIMAL(38, 0) NULL,
             responsavel_nome            VARCHAR(255) NULL, departamento_responsavel_nome VARCHAR(255) NULL,
             id_pessoa_apoio             DECIMAL(38, 0) NULL, nome_apoio                  VARCHAR(255) NULL,
-            departamento_apoio_nome     VARCHAR(255) NULL, tipo_origem                 VARCHAR(100)
+            departamento_apoio_nome     VARCHAR(255) NULL, tipo_origem                 VARCHAR(100),
+            data_atualizacao            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
         """
         cursor.execute(create_table_query)
@@ -130,7 +131,18 @@ def load_data(df_silver):
         df_para_inserir = df_silver.astype(object).where(pd.notna(df_silver), None)
         dados_para_inserir = [tuple(row) for row in df_para_inserir.itertuples(index=False)]
         
-        insert_query = f"INSERT INTO {config.SILVER_IMPLANTACOES_TABLE_NAME} VALUES ({', '.join(['?'] * len(df_silver.columns))})"
+        # 1. Pegue os nomes das colunas do DataFrame.
+        column_names = ", ".join(df_silver.columns)
+        
+        # 2. Crie a string de placeholders (?) com o número exato de colunas do DF.
+        placeholders = ", ".join(['?'] * len(df_silver.columns))
+        
+        # 3. Use INSERT INTO (COLUNAS) VALUES (PLACEHOLDERS)
+        insert_query = f"""
+        INSERT INTO {config.SILVER_IMPLANTACOES_TABLE_NAME} ({column_names}) 
+        VALUES ({placeholders})
+        """
+
         cursor.executemany(insert_query, dados_para_inserir)
         
         conn.commit()
