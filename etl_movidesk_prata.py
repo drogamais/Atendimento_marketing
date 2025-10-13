@@ -126,14 +126,27 @@ def load_data(df_silver):
             responsavel_id INT, responsavel_nome VARCHAR(255),
             departamento_responsavel_nome VARCHAR(255), id_pessoa_apoio INT,
             nome_apoio VARCHAR(255), departamento_apoio_nome VARCHAR(255), 
-            tipo_origem VARCHAR(100)
+            tipo_origem VARCHAR(100),
+            data_atualizacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_ai_ci;
         """
         cur.execute(create_table_query)
         print(" > Tabela Silver criada com sucesso.")
 
         print(f"Inserindo {len(df_silver)} registros na tabela...")
-        insert_query = f"INSERT INTO {config.SILVER_TABLE_NAME} VALUES ({', '.join(['?'] * len(df_silver.columns))})"
+
+        # 1. Pegue os nomes das colunas do DataFrame.
+        column_names = ", ".join(df_silver.columns)
+        
+        # 2. Crie a string de placeholders (?) com o número exato de colunas do DF.
+        placeholders = ", ".join(['?'] * len(df_silver.columns))
+        
+        # 3. Use INSERT INTO (COLUNAS) VALUES (PLACEHOLDERS)
+        insert_query = f"""
+        INSERT INTO {config.SILVER_TABLE_NAME} ({column_names}) 
+        VALUES ({placeholders})
+        """
+        
         data_to_insert = [tuple(row) for row in df_silver.itertuples(index=False)]
         cur.executemany(insert_query, data_to_insert)
         

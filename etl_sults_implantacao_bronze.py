@@ -138,7 +138,8 @@ def tratar_e_salvar_tarefas(tarefas_json, nome_tabela):
             `porcentagemConclusao` DECIMAL(5, 2) NULL, `fase_id` DECIMAL(38, 0) NULL,
             `fase_nome` VARCHAR(255) NULL, `fase_codigo` VARCHAR(50) NULL,
             `responsavel_id` DECIMAL(38, 0) NULL, `responsavel_nome` VARCHAR(255) NULL,
-            `funcao_id` DECIMAL(38, 0) NULL, `funcao_nome` VARCHAR(255) NULL
+            `funcao_id` DECIMAL(38, 0) NULL, `funcao_nome` VARCHAR(255) NULL,
+            `data_atualizacao` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
         cursor.execute(sql_create_table)

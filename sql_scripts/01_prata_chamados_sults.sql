@@ -20,11 +20,31 @@ CREATE TABLE silver_sults_chamados (
     id_pessoa_apoio                 INT,
     nome_apoio                      VARCHAR(255),
     departamento_apoio_nome         VARCHAR(255),
-    tipo_origem                     VARCHAR(100)
+    tipo_origem                     VARCHAR(100),
+    data_atualizacao                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 3. Insere os dados na tabela recém-criada usando a lógica de transformação.
-INSERT INTO silver_sults_chamados
+INSERT INTO silver_sults_chamados (
+    id_fato_chamado, 
+    id_chamado, 
+    titulo, 
+    data_referencia, 
+    assunto_id, 
+    assunto_nome,
+    situacao, 
+    situacao_nome, 
+    solicitante_id, 
+    solicitante_nome, 
+    departamento_solicitante_nome,
+    responsavel_id, 
+    responsavel_nome, 
+    departamento_responsavel_nome, 
+    id_pessoa_apoio,
+    nome_apoio, 
+    departamento_apoio_nome, 
+    tipo_origem 
+)
 -- ETAPA 1: Expande o JSON para ter uma linha por pessoa de apoio.
 WITH bronze_com_apoio AS (
     SELECT DISTINCT
