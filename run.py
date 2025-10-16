@@ -44,7 +44,8 @@ def main():
         "etl_sults_implantacao_bronze.py",
         "etl_sults_implantacao_prata.py",
         "etl_sults_bronze.py",
-        "etl_sults_prata.py"
+        "etl_sults_prata.py",
+        "sync_movidesk_focais.py"
     ]
 
     print(">>> Iniciando o processo de ETL completo <<<\n")
