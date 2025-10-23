@@ -157,7 +157,7 @@ else:
         cursor.execute(f"SELECT chave_id FROM {TABLE_NAME} WHERE tipo = 'MOVIDESK'")
         db_chaves_existentes = {row["chave_id"] for row in cursor.fetchall()}
         cursor.close()
-        print(f"✅ Encontrados {len(db_chaves_existentes)} registros do MoviDesk no banco.")
+        print(f" Encontrados {len(db_chaves_existentes)} registros do MoviDesk no banco.")
 
         print("Preparando lotes para INSERÇÃO e ATUALIZAÇÃO...")
         para_inserir, para_atualizar = [], []
@@ -170,7 +170,7 @@ else:
             else:
                 para_atualizar.append(row) # Força a atualização de todos os existentes
         
-        print(f"🔎 Verificação concluída: {len(para_inserir)} para INSERIR, {len(para_atualizar)} para ATUALIZAR.")
+        print(f" Verificação concluída: {len(para_inserir)} para INSERIR, {len(para_atualizar)} para ATUALIZAR.")
 
         if not para_inserir and not para_atualizar:
             print("Nenhum ticket novo encontrado. Banco de dados já está sincronizado.")
@@ -220,7 +220,7 @@ else:
                 cursor.close()
 
             connection.commit()
-            sucesso_msg = f"✅ *Sincronização MoviDesk concluída!*\n\n- *Novos Registros:* {len(para_inserir)}\n- *Registros Atualizados:* {len(para_atualizar)} (Todos os existentes)"
+            sucesso_msg = f" *Sincronização MoviDesk concluída!*\n\n- *Novos Registros:* {len(para_inserir)}\n- *Registros Atualizados:* {len(para_atualizar)} (Todos os existentes)"
             print("\n" + sucesso_msg.replace('*', ''))
             enviar_mensagem_telegram(sucesso_msg)
             
