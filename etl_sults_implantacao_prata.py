@@ -8,6 +8,7 @@ import warnings
 
 # Módulos do nosso projeto
 import config  # Importa o seu arquivo de configurações
+import constants
 
 # Ignora avisos específicos do Pandas
 warnings.filterwarnings('ignore', message='pandas only supports SQLAlchemy.*')
@@ -28,14 +29,14 @@ def extract_data():
         # [MODIFICADO] Usa a configuração do arquivo config.py
         conn = mariadb.connect(**config.DB_CONFIG)
         
-        print(f"Lendo a tabela de tarefas: '{config.BRONZE_IMPLANTACOES_TABLE_NAME}'...")
+        print(f"Lendo a tabela de tarefas: '{constants.BRONZE_IMPLANTACOES_TABLE_NAME}'...")
         # [MODIFICADO] Usa o nome da tabela do config.py
-        df_bronze = pd.read_sql(f"SELECT * FROM {config.BRONZE_IMPLANTACOES_TABLE_NAME}", conn)
+        df_bronze = pd.read_sql(f"SELECT * FROM {constants.BRONZE_IMPLANTACOES_TABLE_NAME}", conn)
         print(f" > Sucesso! {len(df_bronze)} registros lidos da camada Bronze.")
 
-        print(f"Lendo a tabela de dimensão: '{config.DIM_PESSOAS_TABLE_NAME}'...")
+        print(f"Lendo a tabela de dimensão: '{constants.DIM_PESSOAS_TABLE_NAME}'...")
         # ⚠️ ATENÇÃO: Verifique se 'id_sults' é o nome correto da coluna na sua dim_responsaveis
-        query_responsaveis = f"SELECT id_sults, nome_oficial, departamento_nome FROM {config.DIM_PESSOAS_TABLE_NAME}"
+        query_responsaveis = f"SELECT id_sults, nome_oficial, departamento_nome FROM {constants.DIM_PESSOAS_TABLE_NAME}"
         df_responsaveis = pd.read_sql(query_responsaveis, conn)
         
         df_responsaveis['id_sults'] = pd.to_numeric(df_responsaveis['id_sults'], errors='coerce')
@@ -75,8 +76,8 @@ def transform_data(df_bronze, mapa_nomes, mapa_departamentos):
     
     # --- LINHAS MODIFICADAS ---
     # Usa os novos mapas do config.py para traduzir IDs e Nomes
-    df_silver['situacao'] = df_bronze['situacao'].map(config.MAPA_SITUACAO_IMPLANTACAO_ID)
-    df_silver['situacao_nome'] = df_bronze['situacao'].map(config.MAPA_SITUACAO_IMPLANTACAO_NOME).fillna('Desconhecido')
+    df_silver['situacao'] = df_bronze['situacao'].map(constants.MAPA_SITUACAO_IMPLANTACAO_ID)
+    df_silver['situacao_nome'] = df_bronze['situacao'].map(constants.MAPA_SITUACAO_IMPLANTACAO_NOME).fillna('Desconhecido')
     # --- FIM DAS MODIFICAÇÕES ---
 
     df_silver['solicitante_id'] = df_bronze['responsavel_id']
@@ -102,16 +103,16 @@ def load_data(df_silver):
     print("\n--- INICIANDO ETAPA DE CARGA (LOAD) ---")
     conn = None
     try:
-        print(f"Conectando ao banco de dados para carregar a tabela '{config.SILVER_IMPLANTACOES_TABLE_NAME}'...")
+        print(f"Conectando ao banco de dados para carregar a tabela '{constants.SILVER_IMPLANTACOES_TABLE_NAME}'...")
         # [MODIFICADO] Usa a configuração do arquivo config.py
         conn = mariadb.connect(**config.DB_CONFIG)
         cursor = conn.cursor()
 
-        print(f"Recriando a tabela '{config.SILVER_IMPLANTACOES_TABLE_NAME}'...")
+        print(f"Recriando a tabela '{constants.SILVER_IMPLANTACOES_TABLE_NAME}'...")
         # [MODIFICADO] Usa o nome da tabela do config.py
-        cursor.execute(f"DROP TABLE IF EXISTS {config.SILVER_IMPLANTACOES_TABLE_NAME}")
+        cursor.execute(f"DROP TABLE IF EXISTS {constants.SILVER_IMPLANTACOES_TABLE_NAME}")
         create_table_query = f"""
-        CREATE TABLE {config.SILVER_IMPLANTACOES_TABLE_NAME} (
+        CREATE TABLE {constants.SILVER_IMPLANTACOES_TABLE_NAME} (
             id_fato_implantacao         VARCHAR(255) PRIMARY KEY, id_implantacao              DECIMAL(38, 0),
             titulo                      TEXT, data_referencia             DATE,
             assunto_id                  INT NULL, assunto_nome                VARCHAR(255),
@@ -139,7 +140,7 @@ def load_data(df_silver):
         
         # 3. Use INSERT INTO (COLUNAS) VALUES (PLACEHOLDERS)
         insert_query = f"""
-        INSERT INTO {config.SILVER_IMPLANTACOES_TABLE_NAME} ({column_names}) 
+        INSERT INTO {constants.SILVER_IMPLANTACOES_TABLE_NAME} ({column_names}) 
         VALUES ({placeholders})
         """
 

@@ -7,24 +7,11 @@ import re
 import html
 import mariadb
 import sys
-
-# --- Configurações da API ---
-API_TOKEN = "O2Ryb2dhbWFpczsxNzQ0ODAzNDc1NjIx" 
-BASE_URL_PROJETOS = "https://api.sults.com.br/api/v1/implantacao/projeto"
-BASE_URL_TAREFAS = "https://api.sults.com.br/api/v1/implantacao/projeto/{projetoId}/tarefa"
-
-# --- CONFIGURAÇÕES DO BANCO DE DADOS ---
-# 🚨 PREENCHA COM AS SUAS INFORMAÇÕES 🚨
-CONFIGURACOES_BANCO = {
-    "user": "drogamais",
-    "password": "dB$MYSql@2119",
-    "host": "10.48.12.20",
-    "port": 3306,
-    "database": "dbSults"
-}
+from config import DB_CONFIG, SULTS_API_TOKEN, BASE_URL_PROJETOS, BASE_URL_TAREFAS
+from constants import BRONZE_IMPLANTACOES_TABLE_NAME
 
 # --- Cabeçalhos da Requisição ---
-headers = { "Authorization": API_TOKEN, "Content-Type": "application/json;charset=UTF-8" }
+headers = { "Authorization": SULTS_API_TOKEN, "Content-Type": "application/json;charset=UTF-8" }
 
 # --- Funções Auxiliares e de Extração (sem alterações) ---
 def limpar_html(texto_html):
@@ -124,7 +111,7 @@ def tratar_e_salvar_tarefas(tarefas_json, nome_tabela):
 
     conn = None
     try:
-        conn = mariadb.connect(**CONFIGURACOES_BANCO)
+        conn = mariadb.connect(**DB_CONFIG)
         cursor = conn.cursor()
         print(f"\nApagando a tabela antiga '{nome_tabela}' (se existir)...")
         cursor.execute(f"DROP TABLE IF EXISTS `{nome_tabela}`")
@@ -143,7 +130,7 @@ def tratar_e_salvar_tarefas(tarefas_json, nome_tabela):
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
         cursor.execute(sql_create_table)
-        cursor.execute(f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{CONFIGURACOES_BANCO['database']}' AND TABLE_NAME = '{nome_tabela}'")
+        cursor.execute(f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{DB_CONFIG['database']}' AND TABLE_NAME = '{nome_tabela}'")
         colunas_da_tabela = [row[0] for row in cursor.fetchall()]
         df_final = df[[col for col in colunas_da_tabela if col in df.columns]]
         df_para_inserir = df_final.astype(object).where(pd.notna(df_final), None)
@@ -166,6 +153,6 @@ if __name__ == "__main__":
     lista_de_projetos = buscar_todos_os_projetos()
     if lista_de_projetos:
         lista_de_tarefas = buscar_todas_as_tarefas(lista_de_projetos)
-        tratar_e_salvar_tarefas(lista_de_tarefas, "bronze_sults_implantacao")
+        tratar_e_salvar_tarefas(lista_de_tarefas, BRONZE_IMPLANTACOES_TABLE_NAME)
     else:
         print("\nNenhum projeto foi encontrado para iniciar a busca por tarefas.")

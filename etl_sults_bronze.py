@@ -2,15 +2,11 @@ import requests
 import pandas as pd
 from tqdm import tqdm
 import mariadb
-import config
-
-# --- FUNÇÕES DE BUSCA E TRANSFORMAÇÃO (sem alterações) ---
-# ... (as funções buscar_todos_chamados e transformar_dataframe_bronze continuam exatamente as mesmas) ...
-API_TOKEN = "O2Ryb2dhbWFpczsxNzQ0ODAzNDc1NjIx"
-BASE_URL = "https://api.sults.com.br/api/v1"
+from config import DB_CONFIG, SULTS_API_TOKEN, SULTS_BASE_URL
+from constants import BRONZE_TABLE_NAME_SULTS
 
 headers = {
-    "Authorization": API_TOKEN,
+    "Authorization": SULTS_API_TOKEN,
     "Content-Type": "application/json;charset=UTF-8",
 }
 
@@ -18,7 +14,7 @@ def buscar_todos_chamados(filtros=None):
     if filtros is None:
         filtros = {}
     endpoint_chamados = "/chamado/ticket"
-    url_chamados = f"{BASE_URL}{endpoint_chamados}"
+    url_chamados = f"{SULTS_BASE_URL}{endpoint_chamados}"
     todos_chamados = []
     pagina_atual = 0
     limit_por_pagina = 100
@@ -209,7 +205,7 @@ def atualizar_camada_bronze():
     print("--- INICIANDO SUBPROCESSO: ATUALIZAÇÃO DA CAMADA BRONZE SULTS ---")
     
     # Usa a nova variável de config
-    criar_tabela_se_nao_existir(config.BRONZE_TABLE_NAME_SULTS, config.DB_CONFIG)
+    criar_tabela_se_nao_existir(BRONZE_TABLE_NAME_SULTS, DB_CONFIG)
 
     # 1. EXTRAIR
     df_chamados_brutos = buscar_todos_chamados()
@@ -220,7 +216,7 @@ def atualizar_camada_bronze():
         
         # 3. CARREGAR (usando a função de upsert)
         # Usa a nova variável de config
-        upsert_camada_bronze(df_chamados_tratados, config.BRONZE_TABLE_NAME_SULTS, config.DB_CONFIG)
+        upsert_camada_bronze(df_chamados_tratados, BRONZE_TABLE_NAME_SULTS, DB_CONFIG)
     print("--- SUBPROCESSO BRONZE SULTS FINALIZADO ---")
 
 # --- BLOCO DE EXECUÇÃO INDEPENDENTE (PARA TESTES) ---
