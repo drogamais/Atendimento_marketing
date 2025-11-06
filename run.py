@@ -39,13 +39,10 @@ def run_script(script_name, python_executable):
 
 def main():
     scripts_para_rodar = [
-        "etl_movidesk_bronze.py",
-        "etl_movidesk_prata.py",
         "etl_sults_implantacao_bronze.py",
         "etl_sults_implantacao_prata.py",
         "etl_sults_bronze.py",
-        "etl_sults_prata.py",
-        "sync_movidesk_focais.py"
+        "etl_sults_prata.py"
     ]
 
     print(">>> Iniciando o processo de ETL completo <<<\n")
